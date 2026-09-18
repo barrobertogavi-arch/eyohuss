@@ -1,4 +1,6 @@
-import { createContext, useContext, useMemo, useState } from "react";
+"use client";
+
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 export interface ThemeContextValue {
   dark: boolean;
@@ -10,16 +12,29 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 export function ThemeProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const [dark, setDark] = useState<boolean>(true);
 
-  const value = useMemo<ThemeContextValue>(() => ({
-    dark,
-    toggleTheme: () => setDark((current) => !current),
-  }), [dark]);
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem("eyohuss-theme");
+    const shouldBeDark = savedTheme ? savedTheme === "dark" : true;
+    setDark(shouldBeDark);
+    document.documentElement.classList.toggle("dark", shouldBeDark);
+    document.documentElement.style.colorScheme = shouldBeDark ? "dark" : "light";
+  }, []);
 
-  return (
-    <ThemeContext.Provider value={value}>
-      <div data-theme={dark ? "dark" : "light"}>{children}</div>
-    </ThemeContext.Provider>
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.style.colorScheme = dark ? "dark" : "light";
+    window.localStorage.setItem("eyohuss-theme", dark ? "dark" : "light");
+  }, [dark]);
+
+  const value = useMemo<ThemeContextValue>(
+    () => ({
+      dark,
+      toggleTheme: () => setDark((current) => !current),
+    }),
+    [dark],
   );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme(): ThemeContextValue {
